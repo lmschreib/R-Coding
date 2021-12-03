@@ -1,0 +1,401 @@
+---
+title: "Homework 02"
+output: html_notebook
+---
+
+# Gapminder Data - Homework 02
+
+Import and Set Up Data
+
+```{r}
+#install.packages("gapminder") #download library
+
+library(gapminder) #import libraries
+library(tidyverse)
+
+gapminder <- gapminder #access dataset
+```
+
+**Question \#1 (Examine Data and Set Seed)**
+
+1\. Examine the organization of the dataset. Using the code discussed in class, randomly sample one country. Show the code used to sample. Set seed so that I could reproduce your code.
+
+```{r}
+colnames(gapminder) #see all column names
+```
+
+```{r}
+set.seed(4688)
+randomsample <- sample(1:1704,1)
+randomsample
+```
+
+```{r}
+gapminder[694,] #check which country
+```
+
+**Question \#2 (Describe Chosen Country Dynamics)**
+
+2\.  For the country that was sampled, describe the dynamics of its population, life expectancy, and GDP per capita from the earliest to the latest year available.
+
+```{r}
+gapminder %>%
+  filter(country == 'Iceland') #filter out country
+
+#describe dynamics HERE
+```
+
+```{r}
+# Plot the bar chart for Iceland
+gapminder %>%
+  filter(country == "Iceland") %>%
+  ggplot(aes(x=year, y=pop))  + geom_line()
+
+gapminder %>%
+  filter(country == "Iceland") %>%
+  ggplot(aes(x=year, y=lifeExp))  + geom_line()
+
+gapminder %>%
+  filter(country == "Iceland") %>%
+  ggplot(aes(x=year, y=gdpPercap))  + geom_line()
+```
+
+```{r}
+gapminder_unique<- unique(gapminder$country) #see how many unique values or countries listed 
+length(gapminder_unique)
+```
+
+**Question \#3 (Examine Population, Life Expectancy, and GDP vs. World and Europe)**
+
+3\.  How does the population, life expectancy, and GDP per capita compare with the averages for the continent and for the world as a whole in the earliest year of observation and the latest year of observation. (You will need to calculate corresponding means for this)
+
+```{r}
+#Earliest Year Averages
+
+#World averages
+gapminder_worldmin <- gapminder %>% 
+  filter(year == min(year)) %>% #filter year
+  summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+gapminder_worldmin
+
+#Europe averages
+gapminder_europemin <- gapminder %>% 
+  filter(continent == "Europe", year == min(year)) %>% #filter to Europe
+  summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+gapminder_europemin
+
+#Iceland 
+gapminder_icelandmin <- gapminder %>% 
+  filter(country == "Iceland", year == min(year)) #filter to Iceland
+gapminder_icelandmin
+```
+
+```{r}
+#Latest Year Averages
+
+#World Averages
+gapminder_worldmax <- gapminder %>% 
+  filter(year == max(year)) %>% #filter year
+  summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+gapminder_worldmax
+
+#Europe Averages
+gapminder_europemax <- gapminder %>% 
+  filter(continent == "Europe", year == max(year)) %>% #filter to Europe and year
+  summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+gapminder_europemax
+
+#Iceland 
+gapminder_icelandmax <- gapminder %>% 
+  filter(country == "Iceland", year == max(year)) 
+gapminder_icelandmax
+```
+
+**Question \#4 (Standard Deviation and Z-Score)**
+
+4\. Calculate the standard deviation for the continent and for the world for each indicator for the first and last year of observations. How many standard deviations away from the mean was your country in the first year of observation? In the last year of observation? What does it say about the development of your country?
+
+```{r}
+#Earliest Year Standard Deviation
+
+#World SD
+gapminder_worldmin_sd <- gapminder %>% 
+  filter(year == min(year)) %>% #filter year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_worldmin_sd
+
+#Europe SD
+gapminder_europemin_sd <- gapminder %>% 
+  filter(continent == "Europe", year == min(year)) %>% #filter to Europe and year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_europemin_sd
+```
+
+```{r}
+#Latest Year Standard Deviation
+
+#World SD
+gapminder_worldmax_sd <- gapminder %>% 
+  filter(year == max(year)) %>% #filter year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_worldmax_sd
+
+#Europe SD
+gapminder_europemax_sd <- gapminder %>% 
+  filter(continent == "Europe", year == max(year)) %>% #filter to Europe and year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_europemax_sd
+```
+
+```{r}
+#Z-score for Iceland vs. World and Europe - Population
+
+
+#Iceland vs. World z-score
+zscore_vs_world <- gapminder %>% 
+  group_by(year) %>% 
+  mutate(avgpop = mean(pop), sdpop = sd(pop)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((pop-avgpop)/sdpop))
+zscore_vs_world
+
+zscore_vs_world %>%
+  filter(year == "1952") #ASK ABOUT FILTERING MIN and MAX YEAR
+
+zscore_vs_world %>%
+  filter(year == "2007") 
+
+#Iceland vs. Europe z-score
+zscore_vs_europe <- gapminder %>% 
+  group_by(year) %>% 
+  filter(continent == "Europe") %>%
+  mutate(avgpop = mean(pop), sdpop = sd(pop)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((pop-avgpop)/sdpop))
+zscore_vs_europe
+
+zscore_vs_europe %>%
+  filter(year == "1952") #ASK ABOUT FILTERING MIN and MAX YEAR
+
+zscore_vs_europe %>%
+  filter(year == "2007")
+
+```
+
+```{r}
+#Z-score for Iceland vs. World and Europe - Life Expectancy
+
+#Iceland vs. World z-score
+zscore_vs_world <- gapminder %>% 
+  group_by(year) %>% 
+  mutate(avglifeex = mean(lifeExp), sdlifeex = sd(lifeExp)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((lifeExp-avglifeex)/sdlifeex))
+zscore_vs_world
+
+zscore_vs_world %>%
+  filter(year == "1952") #ASK ABOUT FILTERING MIN and MAX YEAR
+
+zscore_vs_world %>%
+  filter(year == "2007") 
+
+#Iceland vs. Europe z-score
+zscore_vs_europe <- gapminder %>% 
+  group_by(year) %>% 
+  filter(continent == "Europe") %>%
+  mutate(avglifeex = mean(lifeExp), sdlifeex = sd(lifeExp)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((lifeExp-avglifeex)/sdlifeex))
+zscore_vs_europe
+
+zscore_vs_europe %>%
+  filter(year == "1952") #ASK ABOUT FILTERING MIN and MAX YEAR
+
+zscore_vs_europe %>%
+  filter(year == "2007")
+
+```
+
+```{r}
+#Z-score for Iceland vs. World and Europe - GDP Per Capita
+
+#Iceland vs. World z-score
+zscore_vs_world <- gapminder %>% 
+  group_by(year) %>% 
+  mutate(avggdppercap = mean(gdpPercap), sdgdppercap = sd(gdpPercap)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((gdpPercap-avggdppercap)/sdgdppercap))
+zscore_vs_world
+
+zscore_vs_world %>%
+  filter(year == "1952") #ASK ABOUT FILTERING MIN and MAX YEAR
+
+zscore_vs_world %>%
+  filter(year == "2007") 
+
+#Iceland vs. Europe z-score
+zscore_vs_europe <- gapminder %>% 
+  group_by(year) %>% 
+  filter(continent == "Europe") %>%
+  mutate(avggdppercap = mean(gdpPercap), sdgdppercap = sd(gdpPercap)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((gdpPercap-avggdppercap)/sdgdppercap))
+zscore_vs_europe
+
+zscore_vs_europe %>%
+  filter(year == "1952") #ASK ABOUT FILTERING MIN and MAX YEAR
+
+zscore_vs_europe %>%
+  filter(year == "2007")
+```
+
+**Question \#5 (How Iceland Compares in Latest Year)**
+
+5\. In the last year of observations, how many countries outperformed your country in terms of each indicator? What was the best and the worst-performing country in the world and in the continent of your country?
+
+```{r}
+gapminder_lastyear <- gapminder %>% 
+  filter(year == max(year)) #filter year
+
+gapminder_iceland <- gapminder %>% 
+  filter(country == "Iceland", year == max(year)) 
+
+table(gapminder_iceland$pop>gapminder_lastyear$pop)
+table(gapminder_iceland$lifeExp>gapminder_lastyear$lifeExp)
+table(gapminder_iceland$gdpPercap>gapminder_lastyear$gdpPercap)
+
+
+#FIND RANK?
+```
+
+```{r}
+#Best and Worst Population
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(pop == min(pop))
+
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(pop == max(pop))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(pop == min(pop))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(pop == max(pop))
+
+```
+
+```{r}
+#Best and Worst Life Expectancy
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(lifeExp == min(lifeExp))
+
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(lifeExp == max(lifeExp))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(lifeExp == min(lifeExp))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(lifeExp == max(lifeExp))
+
+
+```
+
+```{r}
+#Best and Worst GDP Per Captia
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(gdpPercap == min(gdpPercap))
+
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(gdpPercap == max(gdpPercap))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(gdpPercap == min(gdpPercap))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(gdpPercap == max(gdpPercap))
+```
+
+**Question \#6 (Countries Improvement Over Time)**
+
+6\. In how many countries was the improvement over time better than in your country in the world? In your continent?
+
+```{r}
+iceland_max <- gapminder %>%
+  filter(country == "Iceland", year == max(year))
+
+iceland_min <- gapminder %>%
+  filter(country == "Iceland", year == min(year))
+
+iceland_pop_change <-iceland_max$pop - iceland_min$pop 
+iceland_lifeExp_change <- iceland_max$lifeExp - iceland_min$lifeExp 
+iceland_gdppercap_change <- iceland_max$gdpPercap - iceland_min$gdpPercap 
+
+
+gapminder_2007 <- gapminder %>%
+  filter(year== max(year))
+gapminder_2007
+
+gapminder_1952 <- gapminder %>%
+  filter(year== min(year))
+gapminder_1952
+
+table(iceland_pop_change> (gapminder_2007$pop-gapminder_1952$pop))
+table(iceland_pop_change> (gapminder_2007$pop-gapminder_1952$pop))
+table(iceland_pop_change> (gapminder_2007$pop-gapminder_1952$pop))
+
+ 
+
+```
+
+**Question \#7 (Total Population Each Year)**
+
+7\.  What was the total population of the continent each year?  What was the total population of the world?
+
+```{r}
+#Total Population of Europe Each Year
+gapminder_pop_europe <- gapminder %>%
+  filter(continent == "Europe") %>%
+  group_by(year)%>%
+  summarize(by_year = sum(pop))
+gapminder_pop_europe
+```
+
+```{r}
+#Total Population of World
+gapminder_pop_world <- gapminder %>%
+  group_by(year)%>%
+  summarize(by_year = sum(pop))
+gapminder_pop_world
+```
+
+**Question \#8 (Total GDP World)**
+
+8\. What was the total GDP (not per capita) of the world in each year according to the data?
+
+```{r}
+#GPD/Population = GDP Per Capita 
+gapminder_GDP <- gapminder %>%
+  mutate(gdp = pop*gdpPercap)%>%
+  group_by(year) %>% 
+  summarize(by_year = sum(pop))
+gapminder_GDP
+```
+
+**Question \#9**
+
+9\.  Write a short paragraph describing your country's development in history compared to other countries in its continent and the world as a whole. Make sure to write it in a way so that someone who doesn't know statistics could understand it. 
+
+Iceland based o \~\~ finished answer here
