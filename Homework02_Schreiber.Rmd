@@ -1,0 +1,611 @@
+---
+title: "Homework 02"
+output: html_notebook
+---
+
+# Gapminder Data - Homework 02 - Lisa Schreiber
+
+Import and Set Up Data
+
+```{r}
+#install.packages("gapminder") #download library
+
+library(gapminder) #import libraries
+library(tidyverse)
+library(dplyr)
+
+gapminder <- gapminder #access dataset
+```
+
+## **Question \#1 (Examine Data and Set Seed)**
+
+*1. Examine the organization of the dataset. Using the code discussed in class, randomly sample one country. Show the code used to sample. Set seed so that I could reproduce your code.*
+
+```{r}
+colnames(gapminder) #see all column names
+```
+
+```{r}
+set.seed(4688)
+randomsample <- sample(1:1704,1)
+randomsample
+```
+
+```{r}
+gapminder[randomsample,] #Iceland is chosen from randomsample
+gapminder[694,] #Double-check which country by testing number
+
+```
+
+## **Question \#2 (Describe Chosen Country Dynamics)**
+
+*2. For the country that was sampled, describe the dynamics of its population, life expectancy, and GDP per capita from the earliest to the latest year available.*
+
+Out of the 142 countries, the random sample selected Iceland. Iceland's population has grown every year from the earliest year available (1952) to the latest year available (2007); the latest year has Iceland's highest population compared to its other years. Overall, Iceland's life expectancy (ranging between 70-82 years old) has been seeing steady increases over the years with a period from the 1960s to 1970s where it stagnated or did not grow as fast for a bit. In regards to GDP per Capita, Iceland mostly grew 1952 to 1987 but saw a slight decline from 1987 to 1992; however, from 1992 onward the GDP per Capita continued to increase for the rest of the measurement intervals. For more detail, visuals for each indicator are included in the second chunk of code in question 2.
+
+```{r}
+gapminder %>%
+  filter(country == 'Iceland') #filter out country to examine trends
+```
+
+```{r}
+# Plot the bar chart for Iceland
+gapminder %>%
+  filter(country == "Iceland") %>%
+  ggplot(aes(x=year, y=pop))  + geom_line()
+
+gapminder %>%
+  filter(country == "Iceland") %>%
+  ggplot(aes(x=year, y=lifeExp))  + geom_line()
+
+gapminder %>%
+  filter(country == "Iceland") %>%
+  ggplot(aes(x=year, y=gdpPercap))  + geom_line()
+```
+
+```{r}
+gapminder_unique<- unique(gapminder$country) #see how many unique values or countries listed 
+length(gapminder_unique)
+```
+
+## **Question \#3 (Examine Population, Life Expectancy, and GDP vs. World and Europe)**
+
+3\. *How does the population, life expectancy, and GDP per capita compare with the averages for the continent and for the world as a whole in the earliest year of observation and the latest year of observation. (You will need to calculate corresponding means for this)*
+
+[**Earliest Year Averages (1952)**]{.ul}
+
+-   Population: Iceland's population (147,962) is surpassed by both the World and European mean populations. The country is only 0.8% of the World population average and 1% of Europe's population average.
+
+-   Life Expectancy: Iceland's life expectancy (about 72 yrs old) in 1952 was significantly older than Europe's (64 yrs old) and World's (49 yrs old) averages. Iceland's residents live on average about 23 years longer than the World average.
+
+-   GDP Per Capita: Iceland's GDP per Capita is about double the World's GDP per Capita in the earliest year's average. Additionally, Iceland's GDP per Capital is about +28% larger than Europe's average during this time.
+
+```{r}
+#Earliest Year Averages
+
+#World averages
+gapminder_worldmin <- gapminder %>% 
+  filter(year == min(year)) %>% #filter year
+  summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+gapminder_worldmin
+
+#Europe averages
+gapminder_europemin <- gapminder %>% 
+  filter(continent == "Europe", year == min(year)) %>% #filter to Europe
+  summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+gapminder_europemin
+
+#Iceland 
+gapminder_icelandmin <- gapminder %>% 
+  filter(country == "Iceland", year == min(year)) #filter to Iceland
+gapminder_icelandmin
+
+#population calculation
+(gapminder_icelandmin$pop/gapminder_worldmin$avgnpop)*100
+(gapminder_icelandmin$pop/gapminder_europemin$avgnpop)*100
+
+#life expectancy calculation
+(gapminder_icelandmin$lifeExp-gapminder_worldmin$avglifeexp)
+(gapminder_icelandmin$lifeExp-gapminder_europemin$avglifeexp)
+
+#gdppercap calculation
+(gapminder_icelandmin$gdpPercap/gapminder_worldmin$avggdppercap)-1
+(gapminder_icelandmin$gdpPercap/gapminder_europemin$avggdppercap)-1
+```
+
+[**Latest Year Averages (2007)**]{.ul}
+
+Overall, Iceland's population, life expectancy, and GDP per Capita all were higher in the final year (2007) than the first year of data (1952).
+
+-   Population: Iceland's population (301,931) is only 0.68% of the World population average, but 1% of Europe's population average, meaning Iceland became smaller relative to the World's average population in 1952, but grew slightly relative to the Europe's 1952 average population (1.55% vs. 1.06%). Lastly, Iceland's population has more than doubled from 1952 to 2007.
+
+-   Life Expectancy: Iceland's average life expectancy went from about 72 to 82 years old from 1952 to 2007, still older than the World (67 yrs old) and Europe's (78 yrs old) average life expectancy in 2007.
+
+-   GDP Per Capita: Iceland's GDP per Capita is about three times the World's GDP per Capita in the latest year averages. Iceland's GDP per Capital also is about +44% larger than Europe's average during this time.
+
+-   <div>
+
+    ```{r}
+    #Latest Year Averages
+
+    #World Averages
+    gapminder_worldmax <- gapminder %>% 
+      filter(year == max(year)) %>% #filter year
+      summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+    gapminder_worldmax
+
+    #Europe Averages
+    gapminder_europemax <- gapminder %>% 
+      filter(continent == "Europe", year == max(year)) %>% #filter to Europe and year
+      summarize(avgnpop = mean(pop), avglifeexp = mean(lifeExp), avggdppercap = mean(gdpPercap))
+    gapminder_europemax
+
+    #Iceland 
+    gapminder_icelandmax <- gapminder %>% 
+      filter(country == "Iceland", year == max(year)) 
+    gapminder_icelandmax
+
+    #population calculation
+    (gapminder_icelandmax$pop/gapminder_worldmax$avgnpop)*100
+    (gapminder_icelandmax$pop/gapminder_europemax$avgnpop)*100
+
+    #life expectancy calculation
+    (gapminder_icelandmax$lifeExp-gapminder_worldmax$avglifeexp)
+    (gapminder_icelandmax$lifeExp-gapminder_europemax$avglifeexp)
+
+    #gdppercap calculation
+    (gapminder_icelandmax$gdpPercap/gapminder_worldmax$avggdppercap)-1
+    (gapminder_icelandmax$gdpPercap/gapminder_europemax$avggdppercap)-1
+    ```
+
+    </div>
+
+## **Question \#4 (Standard Deviation and Z-Score)**
+
+*4. Calculate the standard deviation for the continent and for the world for each indicator for the first and last year of observations. How many standard deviations away from the mean was your country in the first year of observation? In the last year of observation? What does it say about the development of your country?*
+
+[**First Year of Observation Standard Deviation**]{.ul}
+
+In the first year of observation, the World's standard deviation for all indicators were higher than the standard deviation Europe's indicators, meaning the data for the world is much more dispersed or spread out than Europe.
+
+```{r}
+#Earliest Year Standard Deviation
+
+#World SD
+gapminder_worldmin_sd <- gapminder %>% 
+  filter(year == min(year)) %>% #filter year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_worldmin_sd
+
+#Europe SD
+gapminder_europemin_sd <- gapminder %>% 
+  filter(continent == "Europe", year == min(year)) %>% #filter to Europe and year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_europemin_sd
+
+#Iceland
+gapminder %>%
+  filter(country == "Iceland", year == min(year))
+```
+
+[**Last Year of Observation for Standard Deviation**]{.ul}
+
+In the last year of observation, the World's standard deviation for all indicators were again higher than the standard deviation Europe's indicators. This means that data between countries of the world is more spread out than the European countries. Notably, the standard deviation for Europe's life expectancy decreased from 1952, meaning that the life expectancy between the European countries are now closer together in 2007.
+
+```{r}
+#Latest Year Standard Deviation
+
+#World SD
+gapminder_worldmax_sd <- gapminder %>% 
+  filter(year == max(year)) %>% #filter year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_worldmax_sd
+
+#Europe SD
+gapminder_europemax_sd <- gapminder %>% 
+  filter(continent == "Europe", year == max(year)) %>% #filter to Europe and year
+  summarize(sdpop = sd(pop), sdexp = sd(lifeExp), sdgdpercap = sd(gdpPercap))
+gapminder_europemax_sd
+
+#Iceland
+gapminder %>%
+  filter(country == "Iceland", year == max(year))
+```
+
+[**Z-Score for Population**]{.ul}
+
+-   World:
+
+    -   1952: Iceland's was -0.29 standard deviations below the mean in the gapminder data's earliest year, indicating the Iceland's population is smaller than the World country's average.
+
+    -   2007: Iceland's z-score was around -0.30 standard deviations smaller than the mean compared to the World. This is indicates that Iceland's lower population distance from the mean was very similar in both 1952 and 2007.
+
+-   Europe:
+
+    -   1952: Iceland was about -0.80 standard deviations from the mean. Iceland's population is smaller than other European countries on average, but still within 1 standard deviation.
+
+    -   2007: Iceland had a z-score of around -0.81, which indicates that it was about -0.81 standard deviations below Europe's mean. Iceland's change in z-score from 1952 to 2007 was not very much, show that the distance from the mean for both years were very similar.
+
+```{r}
+#Z-score for Iceland vs. World and Europe - Population
+
+#Iceland vs. World z-score
+zscore_vs_world <- gapminder %>% 
+  group_by(year) %>% 
+  mutate(avgpop = mean(pop), sdpop = sd(pop)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((pop-avgpop)/sdpop)) 
+
+zscore_vs_world %>%
+  arrange((year)) #sort to show the min
+
+zscore_vs_world %>%
+  arrange(desc(year)) #sort to show the max
+
+#Iceland vs. Europe z-score
+zscore_vs_europe <- gapminder %>% 
+  group_by(year) %>% 
+  filter(continent == "Europe") %>%
+  mutate(avgpop = mean(pop), sdpop = sd(pop)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((pop-avgpop)/sdpop))
+
+zscore_vs_europe %>%
+  arrange((year)) #sort to show the min
+
+zscore_vs_europe %>%
+  arrange(desc(year)) #sort to show the max
+
+```
+
+[**Z-score for Life Expectancy**]{.ul}
+
+-   World:
+
+    -   1952: Iceland's z-score is around +1.92, almost 2 standard deviations above the mean. This high z-score indicates that Iceland's life expectancy is noticeably higher than the mean for the World, so it is more developed than the rest of the World.
+
+    -   2007:Iceland's z-score in the most recent years is +1.22 standard deviations away from World's mean, showing that Iceland's life expectancy is still above the mean by more than 1 standard deviation. Icelanders on average live longer than the World average by over 1 standard deviation, but Iceland is closer to the mean than they were in 1952.
+
+-   Europe:
+
+    -   1952: Compared to Europe in 1952, Iceland had z-score of about +1.27 for life expectancy, which was +1.27 standard deviations above Europe's mean life expectancy.
+
+    -   2007: Iceland's standard deviation compared to Europe's average life expectancy went up slightly from 1952. Iceland's z-score was about +1.38 standard deviations above Europe's mean, indicating Icelanders are on average living longer by +1.38 standard deviations than people in other European countries and still on average living considerably longer than their other European counterparts similar to as they were in 1952.
+
+```{r}
+#Z-score for Iceland vs. World and Europe - Life Expectancy
+
+#Iceland vs. World z-score
+zscore_vs_world <- gapminder %>% 
+  group_by(year) %>% 
+  mutate(avglifeex = mean(lifeExp), sdlifeex = sd(lifeExp)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((lifeExp-avglifeex)/sdlifeex))
+
+zscore_vs_world %>%
+  arrange((year)) #sort to show the min
+
+zscore_vs_world %>%
+  arrange(desc(year)) #sort to show the max
+
+#Iceland vs. Europe z-score
+zscore_vs_europe <- gapminder %>% 
+  group_by(year) %>% 
+  filter(continent == "Europe") %>%
+  mutate(avglifeex = mean(lifeExp), sdlifeex = sd(lifeExp)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((lifeExp-avglifeex)/sdlifeex))
+
+zscore_vs_europe %>%
+  arrange((year)) #sort to show the min
+
+zscore_vs_europe %>%
+  arrange(desc(year)) #sort to show the max
+```
+
+[**Z-score for GDP Per Capita**]{.ul}
+
+-   World SD:
+
+    -   1952: Iceland was around +0.38 standard deviations above the mean for GDP per Capita, indicating that it is more developed than the World average.
+
+    -   2007: In the most recent year observed, Iceland was about +1.91 standard deviations away from the World's mean for GDP per Capita. This means that Iceland's economic output per person was higher than the average of the World. This indicates that Iceland has developed significantly more, relative to the mean of the other countries over time (compared to 1952).
+
+-   Europe:
+
+    -   1952: Iceland's GDP per capita was about +0.52 standard deviations above Europe's mean, revealing that Icelanders on average had a higher economic output per person than the average of other European countries.
+
+    -   2007: Iceland's z-score in 2007, nearly doubled its z-score from 1952 for this indicator. It was around +0.94 standard deviations above Europe's mean.
+
+```{r}
+#Z-score for Iceland vs. World and Europe - GDP Per Capita
+
+#Iceland vs. World z-score
+zscore_vs_world <- gapminder %>% 
+  group_by(year) %>% 
+  mutate(avggdppercap = mean(gdpPercap), sdgdppercap = sd(gdpPercap)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((gdpPercap-avggdppercap)/sdgdppercap))
+
+zscore_vs_world %>%
+  arrange((year)) #sort to show the min
+
+zscore_vs_world %>%
+  arrange(desc(year)) #sort to show the max
+
+#Iceland vs. Europe z-score
+zscore_vs_europe <- gapminder %>% 
+  group_by(year) %>% 
+  filter(continent == "Europe") %>%
+  mutate(avggdppercap = mean(gdpPercap), sdgdppercap = sd(gdpPercap)) %>% 
+  filter(country == "Iceland") %>% 
+  mutate(zscore = ((gdpPercap-avggdppercap)/sdgdppercap))
+
+zscore_vs_europe %>%
+  arrange((year)) #sort to show the min
+
+zscore_vs_europe %>%
+  arrange(desc(year)) #sort to show the max
+```
+
+## **Question \#5 (How Iceland Compares in Latest Year)**
+
+*5. In the last year of observations, how many countries outperformed your country in terms of each indicator? What was the best and the worst-performing country in the world and in the continent of your country?*
+
+In the last year of observation, the following number of countries (out of 142) outperformed Iceland for each indicator:
+
+-   Population: 140 countries
+
+-   Life Expectancy: 2 countries (Hong Kong and Japan)
+
+-   GDP per Capita: 9 countries
+
+```{r}
+
+gapminder_iceland <- gapminder %>% 
+  filter(country == "Iceland") 
+
+gapminder %>%
+filter(year == max(year), pop>gapminder_iceland$pop)
+
+gapminder %>%
+filter(year == max(year), lifeExp>gapminder_iceland$lifeExp)
+
+gapminder %>%
+filter(year == max(year), gdpPercap>gapminder_iceland$gdpPercap)
+
+```
+
+In the last year of observation, the following countries had the best and worst-performing population in the World and Europe:
+
+-   World
+
+    -   Worst: Sao Tome and Principe
+
+    -   Best: China
+
+-   Europe
+
+    -   Worst: Iceland
+
+    -   Best: Germany
+
+```{r}
+#Best and Worst Population
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(pop == min(pop)) #worst
+
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(pop == max(pop)) #best
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(pop == min(pop)) #worst
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(pop == max(pop)) #best
+
+```
+
+In the last year of observation, the following countries had the best and worst-performing life expectancy in the World and Europe:
+
+-   World
+
+    -   Worst: Swaziland
+
+    -   Best: Japan
+
+-   Europe
+
+    -   Worst: Turkey
+
+    -   Best: Iceland
+
+```{r}
+#Best and Worst Life Expectancy
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(lifeExp == min(lifeExp))
+
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(lifeExp == max(lifeExp))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(lifeExp == min(lifeExp))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(lifeExp == max(lifeExp))
+```
+
+In the last year of observation, the following countries had the best and worst-performing GDP per Capita in the World and Europe:
+
+-   World
+
+    -   Worst: Congo, Dem. Rep.
+
+    -   Best: Norway
+
+-   Europe
+
+    -   Worst: Albania
+
+    -   Best: Norway
+
+```{r}
+#Best and Worst GDP Per Captia
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(gdpPercap == min(gdpPercap))
+
+gapminder %>%
+  filter(year == max(year)) %>%
+  filter(gdpPercap == max(gdpPercap))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(gdpPercap == min(gdpPercap))
+
+gapminder %>%
+  filter(continent == "Europe", year == max(year)) %>%
+  filter(gdpPercap == max(gdpPercap))
+```
+
+## **Question \#6 (Countries Improvement Over Time)**
+
+*6. In how many countries was the improvement over time better than in your country in the world? In your continent?*
+
+**How many countries' improvement over time was better than Iceland compared to the World**
+
+-   Life Expectancy Improvement: 126 countries (Iceland already had a high life expectancy as a starting point in 1952)
+
+-   Population Improvement: 139 countries
+
+-   GDP Per Capita Improvement: 6 countries
+
+```{r}
+#World Data
+#reshape the data
+gapminder_change <- gapminder %>% 
+  filter(year == max(year) | year == min(year)) %>%
+  pivot_wider(names_from = year, values_from = c(lifeExp, pop, gdpPercap))
+
+#calculate the data
+gapminder_change <- gapminder_change %>%
+  mutate(lifeexpdiff = lifeExp_2007-lifeExp_1952, popdiff = pop_2007-pop_1952, gdppercapdiff = gdpPercap_2007-gdpPercap_1952)%>%
+  select(country, continent, lifeexpdiff, popdiff, gdppercapdiff)
+
+#isolate Iceland data
+value <- gapminder_change %>%
+  filter(country == "Iceland")
+value 
+
+#compare each individual metrics
+gapminder_changelifexp <- gapminder_change %>% 
+  arrange(desc(lifeexpdiff)) %>%
+  filter(lifeexpdiff > value$lifeexpdiff) 
+gapminder_changelifexp
+
+gapminder_changepop <- gapminder_change %>% 
+    arrange(desc(popdiff)) %>%
+  filter(popdiff > value$popdiff) 
+gapminder_changepop
+
+gapminder_changegdppercap <- gapminder_change %>% 
+  arrange(desc(gdppercapdiff)) %>%
+  filter(gdppercapdiff > value$gdppercapdiff) 
+gapminder_changegdppercap
+```
+
+**How many countries' improvement over time fared better than Iceland compared to the Europe**
+
+-   Life Expectancy Improvement: 25 countries
+
+-   Population Improvement: 28 countries
+
+-   GDP Per Capita Improvement: 3 countries
+
+```{r}
+#Europe Data
+#reshape the data
+gapminder_change <- gapminder %>% 
+  filter(continent == "Europe", year == max(year) | year == min(year)) %>%
+  pivot_wider(names_from = year, values_from = c(lifeExp, pop, gdpPercap))
+
+#calculate the data
+gapminder_change <- gapminder_change %>%
+  mutate(lifeexpdiff = lifeExp_2007-lifeExp_1952, popdiff = pop_2007-pop_1952, gdppercapdiff = gdpPercap_2007-gdpPercap_1952)%>%
+  select(country, continent, lifeexpdiff, popdiff, gdppercapdiff)
+
+#isolate Iceland data
+value <- gapminder_change %>%
+  filter(country == "Iceland")
+value
+
+#compare each individual metrics
+gapminder_changelifexp <- gapminder_change %>% 
+  arrange(desc(lifeexpdiff)) %>%
+  filter(lifeexpdiff > value$lifeexpdiff) 
+gapminder_changelifexp
+
+gapminder_changepop <- gapminder_change %>%
+  arrange(desc(popdiff)) %>%
+  filter(popdiff > value$popdiff) 
+gapminder_changepop
+
+gapminder_changegdppercap <- gapminder_change %>%
+  arrange(desc(gdppercapdiff)) %>%
+  filter(gdppercapdiff > value$gdppercapdiff) 
+gapminder_changegdppercap
+```
+
+## **Question \#7 (Total Population Each Year)**
+
+*7. What was the total population of the continent each year? What was the total population of the world?*
+
+The total population of the Europe is in the chart below.
+
+```{r}
+#Total Population of Europe Each Year
+gapminder_pop_europe <- gapminder %>%
+  filter(continent == "Europe") %>%
+  group_by(year)%>%
+  summarize(by_year = sum(pop))
+gapminder_pop_europe
+```
+
+The total population of the world is in the chart below.
+
+```{r}
+#Total Population of World Each Year
+gapminder_pop_world <- gapminder %>%
+  group_by(year)%>%
+  summarize(by_year = sum(pop))
+gapminder_pop_world
+```
+
+## **Question \#8 (Total GDP World)**
+
+*8. What was the total GDP (not per capita) of the world in each year according to the data?*
+
+The total GDP of the world in each year is in chart below.
+
+```{r}
+#GDP/Population = GDP Per Capita 
+gapminder_GDP <- gapminder %>%
+  mutate(gdp = pop*gdpPercap)%>%
+  group_by(year) %>% 
+  summarize(by_year = sum(gdp))
+gapminder_GDP
+```
+
+## **Question \#9**
+
+*9. Write a short paragraph describing your country's development in history compared to other countries in its continent and the world as a whole. Make sure to write it in a way so that someone who doesn't know statistics could understand it.*
+
+From 1952 to 2007, Iceland's population has more than doubled, reaching 301,931 people in 2007, but was still the second smallest country based on population. Iceland's population in 1952 and 2007 both fell below the World and Europe's average population sizes, remaining about a similar distance below those averages in both years. In terms of life expectancy, Iceland had the second-highest life expectancy (72.5 yrs old) in the World in 1952 and increased it by approximately 9.3 years (81.8 yrs old) in 2007. Compared to the World and Europe in 2007, Iceland's life expectancy was considerably above their respective averages (World: 67.0 yrs old, Europe: 77.6). Iceland also had the highest life expectancy in Europe in 2007, well above all European countries summed together and averaged. Lastly, Iceland's GDP per Capita improved over time more (1952 to 2007) relative to the rest of the World's average and specifically was well above the World's average in 2007 meaning that Iceland is well-developed in this indicator. Likewise, Iceland's GDP per Capita outperformed the average of other European countries in 1952 and 2007, but more so in 2007. Iceland's GDP per Capita was \$36,181 in 2007, relatively far away from Europe's average (\$25,054) compared to other European countries.
