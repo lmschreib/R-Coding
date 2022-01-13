@@ -1,0 +1,331 @@
+---
+title: "Homework 07 - Schreiber"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+# Homework 7
+
+### Import Libraries
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#import libraries
+library(tidyverse)
+library(ggplot2)
+```
+
+### Load Data
+
+```{r}
+titanic <- read_csv("titanic3.csv") #import data
+
+titanic1 <- titanic %>% #make headings lower case
+  rename_with(tolower) 
+```
+
+```{r}
+mean(titanic1$survived) #38% of people survived in this sample.
+```
+
+## Question 1
+
+*1. Construct a table showing the distribution of passengers by class
+and survival.*
+
+Here's the table that shows the distribution of passengers by class and
+whether the people survived or not. The column numbers (1 through 3)
+represent the three classes on the Titanic and the row numbers refer to
+survived (1) and not survived (0).
+
+```{r}
+table(titanic1$survived, titanic1$pclass)
+```
+
+## Question 2
+
+*2. Construct a logistic regression model that links survival to the
+passenger class. Write out the equation first without Running it in R.
+HINT: Class is a factor variable*
+
+Assuming the default is first class:
+
+$$ logODDs (survived) = β0 + (β1 * class2) + (β2 * class3)
+$$
+
+## Question 3
+
+*3. Using hand-calculations, determine the coefficients in the model and
+interpret them (HINT: all you need to do is to use the table, calculate
+odds for the default category and the odds-ratios for the other
+categories versus the default)*
+
+$$
+logODDs (survived) = β0 + (β1 * class2) + (β2 * class3)
+$$
+
+$$
+logODDs (survived) = 0.486133 + (- 0.7696045 *class2) + (- 1.556732*class3)
+$$
+
+The odds for first class (default category) was 1.62, while the odds
+ratio for second class was 0.46 and for third class was 0.21. The number
+0.486133 in the model represents the log-odds survival of the default
+category first class. The number -0.7696045 in the model is calculated
+by the difference between the log-odds of second class minus the
+log-odds of first class. Lastly, the number -1.556732 in the above model
+is calculated by the difference between the log-odds of third class
+minus the log-odds of the first class.
+
+Of note, the odds of survival in people in class 2 is 53.7% lower than
+class 1 and the odds of survival in people in class 3 is 78.9% lower
+than class 1.
+
+### Odds and Odds Ratios for Class
+
+```{r}
+#Odds of Survival for First Class (default category)
+200/123
+
+#Odds Ratio for Second Class
+(119/158)/(200/123)
+((119/158)/(200/123)-1)*100 #odds of survival in people in class 2 is 53.68% lower than class 1
+
+#Odds Ratio for Third Class
+(181/528)/(200/123)
+((181/528)/(200/123)-1)*100  #odds of survival in people in class 3 is 78.91% lower than class 1
+```
+
+### Log Odds for Class
+
+```{r}
+#Log Odds of Survival for First Class
+log(200/123)
+
+#Log Odds of Survival for Second Class
+log(119/158) #note that it's negative
+
+#Log Odds of Survival for Third Class
+log(181/528)
+
+#Difference to calculate betas
+-0.2834715 - 0.486133 #beta one (Log Odds of Second Class - Log Odds of First Class)
+
+-1.070599 - 0.486133 #beta two (Log Odds of Third Class - Log Odds of First Class)
+```
+
+## Question 4
+
+*4. Now Run the model in R. Confirm that you got the same results as in
+part c). Interpret the results and talk about significance (both
+statistical and substantive).*
+
+$$
+logODDs (survived) = 0.4861 + (-0.7696 *class2) + (-1.5567 *class3)
+$$
+
+Taking into account the slight number variances due to rounding in the
+model, the numbers here are similar to the answer provided in question
+3. There is a difference in survival for each variable and that
+difference is statistically significant for each class (each p-value is
+below the 0.05 threshold).
+
+You're less likely to survive in class 2 and class 3 than class 1.
+You're also less likely to survive in class 3 than class 2. First class
+(the default category) has odds of 1.62 for survival on the Titanic.
+Additionally, the odds of survival for class 2 was 0.75 and 0.34 for
+class 3. This means that class 1 had the highest odds of survival and
+class 3 ended up with the lowest odds of survival.
+
+Additionally, the odds ratio for second class is about 0.46, which means
+that there is 53.7% lower odds of survival compared to first class. For
+third class, the odds ratio is 0.21, which means that there is a 78.9%
+lower odds of survival compared to first class. Both of these lower odds
+for class 2 and class 3 compared to class 1 are substantively lower.
+
+### Logistic Regression
+
+```{r}
+summary(glm(survived~factor(pclass), family = "binomial", data = titanic1))
+```
+
+### Odds Calculations
+
+```{r}
+#convert to odds
+exp(0.4861) #intercept class 1
+
+#convert to odds ratio
+exp(-0.7696)
+exp(-1.5567)
+
+exp(-0.7696)*exp(0.4861) #class 2 odds of survival
+exp(-1.5567)*exp(0.4861) #class 3 odds of survival
+
+(0.4631983-1)*100 #odds of survival in people in class 2 is 53.68% lower than class 1
+(0.21083070-1)*100 #odds of survival in people in class 3 is 78.91% lower than class 1
+```
+
+## Question 5
+
+*5. What's the probability of survival for each class of passengers?*
+
+Probability of *First Class Survival*: 0.619195 or about 61.9%
+
+Probability of *Second Class Survival*: 0.4296029 or about 43.0%
+
+Probability of *Third Class Survival*: 0.2552891 or about 25.5%
+
+### Probability of Survival for Each Class of Passengers
+
+```{r}
+#Probability of First Class Survival
+200/(200+123) #first way
+exp(0.4861)/(exp(0.4861)+1) #second way
+
+#Probability of Second Class Survival
+119/(158+119) #first way
+exp(0.4861 + -0.7696)/(exp(0.4861 + -0.7696)+1) #second way
+
+#Probability of Third Class Survival
+181/(528+181) #first way
+exp(0.4861 + -1.5567)/(exp(0.4861 + -1.5567)+1) #second way
+```
+
+## Question 6
+
+*6. Construct a model that interacts class of passenger and his/her
+gender. Interpret the results the same way you did before.*
+
+**Equation and Model**
+
+$logODDs (survived)= β0 + (β1 * class2) + (β2 * class3) + (β3 * male) + (β4 * male * class2) + (β5 * male * class3)$
+
+$logODDs (survived)= 3.3250 + (-1.2666 * class2) + (-3.3621 * class3) + (-3.9848 * male) + (0.1617 * male * class2) + (2.3039 * male * class3)$
+
+Women on average had a higher probability of survival over men, even
+regardless of class. On average, a first class female had about a 96.5%
+probability of survival on the Titanic. Second class females ended up
+with a 88.7% probability of survival on the ship on average, while third
+class females had about a 49.1% probability of survival. First class
+males on average had highest probability of survival (34.1%) for males,
+but this was still lower than females from any class. Males in second
+class had about a 14.6% probability of survival, and males in third
+class had a 15.2% probability of survival. Of note, the third class male
+variable has a slightly higher probability of survival than males in
+class 2, but that it could be due to noise as the second class male
+variable is not significant. The odds (listed below) reflect a similar
+pattern to the probability of survival with females having a
+substantively higher odds of survival than men, regardless of class.
+
+Overall, this logistic regression model indicates that the variables sex
+and class play a role in Titanic survival. Most of these variables are
+significant (p-value is below 0.05 threshold so we reject the null
+hypothesis), however, there is one area where we fail to reject the null
+hypothesis. The second class male variable is not significant with its
+p-value of 0.7911.
+
+### Logistic Regression
+
+```{r}
+summary(glm(survived~factor(pclass) * factor(sex), family = "binomial", data = titanic1)) 
+```
+
+### LogOdds of Survival for Class and Sex
+
+```{r}
+#Female, First Class
+3.3250
+
+#Female, Second Class
+3.3250 -1.2666
+
+#Female, Third Class 
+3.3250 -3.3621
+
+#Male, First Class 
+3.3250 -3.9848 
+
+#Male, Second Class 
+3.3250 -1.2666 -3.9848 + 0.1617
+
+#Male, Third Class 
+3.3250 -3.3621 -3.9848 + 2.3039 
+```
+
+### Odds of Survival for Class and Sex
+
+```{r}
+#Odds of First Class Survival Female
+exp(3.3250)
+
+#Odds of Second Class Survival Female
+exp(2.0584)
+
+#Odds of Third Class Survival Female
+exp(-0.0371)
+
+#Odds of First Class Survival Male
+exp(-0.6598)
+
+#Odds of Second Class Survival Male
+exp(-1.7647)
+
+#Odds of Third Class Survival Male
+exp(-1.718)
+```
+
+### Probability of Survival for Class and Sex
+
+```{r}
+#Probability of First Class Survival Female
+exp(3.3250)/(exp(3.3250)+1) 
+
+#Probability of Second Class Survival Female
+exp(3.3250 + -1.2666)/(exp(3.3250 + -1.2666)+1) 
+
+#Probability of Third Class Survival Female
+exp(3.3250 + -3.3621)/(exp(3.3250 + -3.3621)+1) 
+
+#Probability of First Class Survival Male
+(exp(3.3250 + -3.9848)/(exp(3.3250 + -3.9848)+1))
+
+#Probability of Second Class Survival Male
+(exp(3.3250 + -1.2666 + -3.9848 + 0.1617)/(exp(3.3250 + -1.2666 + -3.9848 + 0.1617)+1))
+
+#Probability of Third Class Survival Male
+(exp(3.3250 + -3.3621 + -3.9848 + 2.3039)/(exp(3.3250 + -3.3621 + -3.9848 + 2.3039)+1))
+```
+
+### Survival Counts for Class and Sex
+
+```{r}
+#counts for class and sex
+titantic_chart <- titanic1 %>% count(pclass, sex)
+view(titantic_chart)
+
+#check out survival counts for class and sex
+titantic_counts <- titanic1 %>% count(survived, pclass, sex)
+view(titantic_counts)
+```
+
+### Releveling of Sex to Male in Logistic Regression to Check Numbers
+
+```{r}
+summary(glm(survived~factor(pclass) * relevel(factor(sex), ref = "male"), family = "binomial", data = titanic1))
+
+#Probability of First Class Survival Male
+(exp(-0.6598)/(exp(-0.6598)+1))
+
+#Probability of Second Class Survival Male
+(exp(-0.6598 + -1.1049)/(exp(-0.6598 + -1.1049)+1))
+
+#Probability of Third Class Survival Male
+(exp(-0.6598 + -1.0582)/(exp(-0.6598 + -1.0582)+1))
+```
+
+### 
