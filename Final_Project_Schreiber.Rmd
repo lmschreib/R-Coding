@@ -1,0 +1,388 @@
+---
+title: "Final Project"
+output:
+  html_document:
+    df_print: paged
+---
+
+### Does Nature Know Best? Analyzing Activity in Nature & Mental Health
+
+This final project investigates the relationship between activity in nature and mental health. First a chi-squared test is conducted, followed by three logistic regressions with one of the models accounting for two confounding variables.
+
+**Hypothesis**: Individuals who are active in nature are more likely to report better mental health.
+
+This project is based on the General Social Survey (GSS) 2021 data is found here: <https://gss.norc.org/Get-The-Data>
+
+```{r}
+#import libraries and more libraries
+library(tidyverse)
+library(dplyr)
+library(descr)
+library(haven)
+library(DescTools)
+library(vcd)
+library(ggplot2)
+library(infer)
+library(wesanderson)
+library(lmtest)
+```
+
+#### Load GSS Data
+
+```{r}
+gss_2021 <- read_dta("gss2021.dta")
+
+#view(gss_2021)
+#colnames(gss_2021)
+```
+
+#### Select Variables and Drop NAs
+
+```{r}
+#select variables for analysis and drop NAs
+data <- gss_2021 %>% 
+  select(id, hlthmntl,incom16, activnat, hlthphys, income16) %>% drop_na(hlthmntl, activnat)
+data 
+```
+
+#### Variable Histograms and Counts
+
+Visualize the data and see counts for categories
+
+```{r}
+#histograms
+data %>%  ggplot(aes(x=activnat )) + geom_histogram()
+
+#counts of nature variables
+data %>% count(activnat)
+```
+
+## Chi-Squared Test
+
+The association between the categorical variables activnat and hlthmntl was highly significant with a p-value of 0.000013080. A similar story is reflected in the simulation-based null distribution visualization.
+
+```{r}
+#test data type
+sapply(data, typeof)
+
+#recode columns
+data$activnat <- as.character(data$activnat)
+data$hlthmntl <- as.character(data$hlthmntl)
+
+#active in nature
+observed <- data %>% 
+    specify(hlthmntl ~ activnat) %>% 
+    hypothesize(null = "independence") %>% 
+    calculate(stat = "Chisq") #chi squared distribution
+observed
+
+data %>% 
+    specify(hlthmntl ~ activnat) %>% 
+    hypothesize(null = "independence") %>% 
+    generate(reps = 1000, type = "permute") %>%
+    calculate(stat = "Chisq") %>% 
+    visualize() +
+    shade_p_value(observed, direction = "greater") 
+
+chisq_test(x = data, hlthmntl ~ activnat)
+```
+
+#### Mosaic Plot and Pearson Residuals
+
+Using a mosaic plot to visualize the cross between both variables and spot the Pearson Residuals.
+
+```{r}
+#create a mosaic plot from the table
+tbl <- xtabs(~hlthmntl + activnat, data)
+ftable(tbl)
+
+mosaic(tbl, main = "Active in Nature Impact on Mental Health") 
+
+#more detailed mosaic
+mosaic(tbl, 
+       shade = TRUE,
+       legend = TRUE,
+       labeling_args = list(set_varnames = c(activnat = "Activity in Nature",
+                                             hlthmntl = "Mental Health")),
+       main = "Activity in Nature Impact on Mental Health")
+```
+
+#### Convert Mental Health into Binary (Two Ways)
+
+Applying to thought processing to split the hlthmntl variable (mental health) into a binary.
+
+```{r}
+#recoding that only poor is compared to grouped other
+data_poor <- data %>% 
+  mutate(mntl_poor = case_when(
+  hlthmntl == 1 ~ 1,
+  hlthmntl == 2 ~ 1,
+  hlthmntl == 3 ~ 1,
+  hlthmntl == 4 ~ 1,
+  hlthmntl == 5 ~ 0,
+))
+data_poor
+
+#recoding the poor and fair grouped vs. all other
+data_recode <- data %>% 
+  mutate(mntl_binary = case_when(
+  hlthmntl == 1 ~ 1,
+  hlthmntl == 2 ~ 1,
+  hlthmntl == 3 ~ 1,
+  hlthmntl == 4 ~ 0,
+  hlthmntl == 5 ~ 0,
+))
+data_recode
+
+#visualization code for below (listed as a character)
+data_text <- data %>% 
+  mutate(mntl_binary1 = case_when(
+  hlthmntl == 1 ~ "good",
+  hlthmntl == 2 ~ "good",
+  hlthmntl == 3 ~ "good",
+  hlthmntl == 4 ~ "bad",
+  hlthmntl == 5 ~ "bad",
+  TRUE~ as.character((hlthmntl)
+)))
+data_text
+
+#convert back to numeric
+data_recode$hlthmntl <- as.numeric(data_recode$hlthmntl)
+
+#mental health original
+data_recode %>%  ggplot(aes(x= hlthmntl)) + geom_bar(fill = "#3D550C" )
+
+#mental health binary split
+data_poor %>%  ggplot(aes(x= mntl_poor)) + geom_bar(fill = "#81B622")
+
+#mental health split - poor only
+data_recode %>%  ggplot(aes(x= mntl_binary)) + geom_bar(fill = "#81B622")
+```
+
+#### Bar Chart Visualization for activnat and mental_binary1
+
+Examine the two variables as a proportional bar chart and bar chart.
+
+```{r}
+#proportional bar chart
+data_text %>% 
+  ggplot(aes(x = activnat, fill = mntl_binary1)) +
+  geom_bar(position="fill") + scale_fill_manual(values = wes_palette(2, name = "GrandBudapest1", type = "continuous"))
+
+#bar chart
+data_text %>% 
+  ggplot(aes(x = activnat, fill = mntl_binary1)) +
+  geom_bar(notch = TRUE) + scale_fill_manual(values = wes_palette(2, name = "GrandBudapest1", type = "continuous"))
+```
+
+## Logistic Regression \#1
+
+```{r}
+summary(glm(mntl_binary~factor(activnat), family=binomial, data = data_recode)) #active in nature and mental health binary
+
+#summary(glm(mntl_poor~factor(activnat), family=binomial, data = data_poor))#active in nature vs. poor health (NOT INCLUDED IN SLIDES)
+```
+
+#### Probabilities for Logistic Regression \#1: Active in Nature and Mental Health Binary
+
+```{r}
+#daily (cat. 1)
+exp(2.1180)/(exp(2.1180)+1)
+
+#several times a week (cat. 2)
+exp(2.1180 + -0.2604)/(exp(2.1180+ -0.2604)+1)
+
+#several times a month (cat. 3)
+exp(2.1180 + -0.4465)/(exp(2.1180+ -0.4465)+1)
+
+#several times a year (cat. 4)
+exp(2.1180 + -0.6996)/(exp(2.1180+ -0.6996)+1)
+
+#never (cat. 5)
+exp(2.1180 + -0.8728)/(exp(2.1180+ -0.8728)+1)
+
+0.8926404/0.7764679-1 #cat. 1 is bigger than cat.5 by this much
+```
+
+## Logistic Regression \#2: Making Independent Variables for Activity in Nature Continuous
+
+1\. DAILY 1 -\> 365 days
+
+2\. SEVERAL TIMES A WEEK 2 -\> 4\*4\*12 = 192 days
+
+3\. SEVERAL TIMES A MONTH 3 -\> 4\*12 = 48 days
+
+4\. SEVERAL TIMES A YEAR 4 -\> 4\*1 = 4 days
+
+5\. NEVER 5 -\> 0 days
+
+```{r}
+#convert to continuous 
+data_nature <- data_recode %>% 
+  mutate(nature_cont = case_when(
+  activnat == 1 ~ 365,
+  activnat == 2 ~ 192,
+  activnat == 3 ~ 48,
+  activnat == 4 ~ 4,
+  activnat == 5 ~ 0,
+))
+data_nature
+
+#test out logistic regressions
+summary(glm(mntl_binary~factor(activnat), family=binomial, data = data_recode)) #active in nature and mental health binary
+
+summary(glm(mntl_binary~nature_cont, family=binomial, data = data_nature)) #active in nature and mental health binary
+```
+
+#### Further Testing Data and Probabilities
+
+```{r}
+#y= beta zero + beta one (days in nature)
+-1.4743232 + -0.0018971*48
+-1.4743232 + -0.0018971*192
+
+0.2289336/(0.2289336+1) #intercept
+0.2284997/(0.2284997+1)
+0.03641082/( 0.03641082+1)
+
+exp(-1.4743232)
+exp(-0.0018971)*exp(-1.4743232)
+exp(-1.838566)*exp(-1.4743232)
+
+data_recode %>% count(mntl_binary)
+
+table(data_recode$mntl_binary, data_recode$activnat) #create table
+```
+
+#### Calculating Probability for Days in Nature
+
+```{r}
+#48 days
+0.0918602+(0.0018971*48)
+exp(0.182921)/(exp(0.182921)+1) #probability
+
+#192 days
+0.0918602+(0.0018971*192)
+exp(0.4561034)/(exp(0.4561034)+1) #probability
+
+#365 days
+0.0918602+(0.0018971*365)
+exp(0.7843017)/(exp(0.7843017)+1) #probability
+```
+
+#### Making Confounding Variable (Income16) Continuous
+
+```{r}
+#convert to numeric
+data_nature$income16 <- as.numeric(data_nature$income16)
+
+data_coded <- data_nature %>% drop_na(income16) %>% 
+  mutate(income = case_when(income16 == "1" ~ 500,
+                            income16 == "2" ~ 1999.5,
+                            income16 == "3" ~ 3499.5,
+                            income16 == "4" ~ 4499.5,
+                            income16 == "5" ~ 5499.5,
+                            income16 == "6" ~ 6499.5,
+                            income16 == "7" ~ 7499.5,
+                            income16 == "8" ~ 8999.5,
+                            income16 == "9" ~ 11249.5,
+                            income16 == "10" ~ 13749.5,
+                            income16 == "11" ~ 16249.5,
+                            income16 == "12" ~ 18749.5,
+                            income16 == "13" ~ 21249.5,
+                            income16 == "14" ~ 23749.5,
+                            income16 == "15" ~ 27499.5,
+                            income16 == "16" ~ 32499.5,
+                            income16 == "17" ~ 37499.5,
+                            income16 == "18" ~ 44999.5,
+                            income16 == "19" ~ 54999.5,
+                            income16 == "20" ~ 67499.5,
+                            income16 == "21" ~ 82499.5,
+                            income16 == "22" ~ 99999.5,
+                            income16 == "23" ~ 119999.5,
+                            income16 == "24" ~ 139999.5,
+                            income16 == "25" ~ 159999.5,
+                            income16 == "26" ~ 200000)) #assumed for highest amount since it's $170,000 OR OVER
+data_coded
+```
+
+#### Making Confounding Variable (Physical Health) Binary
+
+```{r}
+#recoding the poor and fair grouped vs. all other
+data_confounder <- data_coded %>% 
+  mutate(phys_binary = case_when(
+  hlthphys == 1 ~ 1,
+  hlthphys == 2 ~ 1,
+  hlthphys == 3 ~ 1,
+  hlthphys == 4 ~ 0,
+  hlthphys == 5 ~ 0
+))
+data_confounder
+```
+
+## Logistic Regression \#3: Adding Confounding Variables
+
+```{r}
+#factor categorical version of activnat
+summary(glm(mntl_binary~factor(activnat) + factor(phys_binary) + income, family=binomial,data = data_confounder)) 
+
+#continuous version of activnat
+summary(glm(mntl_binary ~ nature_cont + factor(phys_binary) + income, family=binomial,data = data_confounder))  #NOT IN FINAL SLIDES
+```
+
+#### Logistic Regression \#3 Probabilities
+
+```{r}
+exp(0.042762183+(0.000008319*4499.5))/(exp( 0.042762183+(0.000008319*4499.5))+1) #mean value of originally category 4
+exp(0.042762183+(0.000008319*139999.5))/(exp( 0.042762183+(0.000008319*139999.5))+1) #mean value of originally category 24
+
+exp(0.042762183+(0.000008319*40000))/(exp( 0.042762183+(0.000008319*40000))+1) #$40K income
+exp(0.042762183+(0.000008319*50000))/(exp( 0.042762183+(0.000008319*50000))+1) #$50K income
+exp(0.042762183+(0.000008319*60000))/(exp( 0.042762183+(0.000008319*60000))+1) #$60k income
+exp(0.042762183+(0.000008319*70000))/(exp( 0.042762183+(0.000008319*70000))+1) #$70k income
+exp(0.042762183+(0.000008319*80000))/(exp( 0.042762183+(0.000008319*80000))+1) #$80k income
+exp(0.042762183+(0.000008319*100000))/(exp( 0.042762183+(0.000008319*100000))+1) #$100k income
+
+```
+
+#### Logistic Regression: Confounding Variables with Interaction Coefficients
+
+These models were not included in the final presentation because none of the interaction coefficients were insignificant.
+
+```{r}
+#factor categorical version of activnat
+summary(glm(mntl_binary~factor(activnat) * factor(phys_binary) + factor(activnat) * income, family=binomial,data = data_confounder)) #NOT IN FINAL SLIDES
+
+#continuous version of activnat
+summary(glm(mntl_binary ~ nature_cont * factor(phys_binary) + nature_cont * income, family=binomial,data = data_confounder))
+```
+
+## Testing Pseudo R-Squared for Logistic Regression \#1 vs. \#3
+
+```{r}
+#testing Pseudo R-Squared
+r.glm  <- glm(mntl_binary~factor(activnat),family=binomial, data = data_recode)
+PseudoR2(r.glm, which = "McFadden")
+
+r.glm  <- glm(mntl_binary~factor(activnat)*factor(phys_binary) + activnat*income,family=binomial, data = data_confounder)
+PseudoR2(r.glm, which = "McFadden")
+```
+
+## Likelihood Ratio Test: Logistic Regression \#1 vs. \#3
+
+```{r}
+options(scipen = 900) #get rid of scientific notation
+
+#drop any additional NAs
+data_model <- data_confounder %>% drop_na(activnat,phys_binary,mntl_binary, income, incom16)
+
+#fit full model
+model_full <- glm(mntl_binary ~ factor(activnat) + phys_binary + income, data = data_model)
+
+#fit reduced model
+model_reduced <- glm(mntl_binary ~ factor(activnat), data = data_model)
+
+#perform likelihood ratio test for differences in models
+lrtest(model_full, model_reduced)
+```
